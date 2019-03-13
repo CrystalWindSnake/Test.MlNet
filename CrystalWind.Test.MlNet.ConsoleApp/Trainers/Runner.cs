@@ -49,13 +49,17 @@ namespace CrystalWind.Test.MlNet.ConsoleApp.Trainers
 
         private EstimatorChain<KeyToValueMappingTransformer> CreatePipeline()
         {
+            var toFeatures = _MLContext.Transforms.Concatenate(outputColumnName: DefaultColumnNames.Features, inputColumnNames: FileHelper.FeatureNames);
+            var toLabel = _MLContext.Transforms.Conversion.MapValueToKey(outputColumnName: DefaultColumnNames.Label, inputColumnName: FileHelper.LabelName);
+
             var trainer = _MLContext.MulticlassClassification.Trainers.LightGbm();
+            var toValueLabel = _MLContext.Transforms.Conversion.MapKeyToValue(outputColumnName: "PredictedResult", inputColumnName: DefaultColumnNames.PredictedLabel);
 
-            var pipeline = _MLContext.Transforms.Concatenate(outputColumnName: DefaultColumnNames.Features, inputColumnNames: FileHelper.FeatureNames)
-                 .Append(_MLContext.Transforms.Conversion.MapValueToKey(outputColumnName: DefaultColumnNames.Label, inputColumnName: FileHelper.LabelName))
-                 .Append(trainer)
-                 .Append(_MLContext.Transforms.Conversion.MapKeyToValue(outputColumnName: "PredictedResult", inputColumnName: DefaultColumnNames.PredictedLabel));
-
+            var pipeline = toFeatures
+                .Append(toLabel)
+                .Append(trainer)
+                .Append(toValueLabel);
+                              
             return pipeline;
         }
 
@@ -66,7 +70,6 @@ namespace CrystalWind.Test.MlNet.ConsoleApp.Trainers
             var dv = _MLContext.Data.LoadFromTextFile<DataInfo>(FileHelper.DataPath, separatorChar: ',', hasHeader: true);
 
             return _MLContext.MulticlassClassification.TrainTestSplit(dv, testFraction: 0.2);
-
         }
     }
 }
